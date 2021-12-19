@@ -53,6 +53,7 @@
 #include <liblas/export.hpp>
 #include <liblas/detail/singleton.hpp>
 // boost
+#include <boost/array.hpp>
 #include <boost/foreach.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -391,9 +392,6 @@ private:
         eFileSourceIdMax = 65535
     };
 
-    // TODO (low-priority): replace static-size char arrays
-    // with std::string and return const-reference to string object.
-    
     //
     // Private function members
     //
@@ -402,7 +400,7 @@ private:
     //
     // Private data members
     //
-    char m_signature[eFileSignatureSize]; // TODO: replace with boost::array --mloskot
+    boost::array<char, eFileSignatureSize> m_signature;
     boost::uint16_t m_sourceId;
     boost::uint16_t m_reserved;
     boost::uuids::uuid m_projectGuid;
@@ -413,8 +411,8 @@ private:
     boost::uint8_t m_versionMajor;
     boost::uint8_t m_versionMinor;
 
-    char m_systemId[eSystemIdSize]; // TODO: replace with boost::array --mloskot
-    char m_softwareId[eSoftwareIdSize];
+    boost::array<char, eSystemIdSize> m_systemId;
+    boost::array<char, eSoftwareIdSize> m_softwareId;
     uint16_t m_createDOY;
     uint16_t m_createYear;
     uint16_t m_headerSize;

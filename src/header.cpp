@@ -61,7 +61,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <cstring> // std::memset, std::memcpy, std::strncpy
 #include <cassert>
 #include <ctime>
 
@@ -80,11 +79,14 @@ Header::Header() : m_schema(ePointFormat3)
 }
 
 Header::Header(Header const& other) :
+    m_signature(other.m_signature),
     m_sourceId(other.m_sourceId),
     m_reserved(other.m_reserved),
     m_projectGuid(other.m_projectGuid),
     m_versionMajor(other.m_versionMajor),
     m_versionMinor(other.m_versionMinor),
+    m_systemId(other.m_systemId),
+    m_softwareId(other.m_softwareId),
     m_createDOY(other.m_createDOY),
     m_createYear(other.m_createYear),
     m_headerSize(other.m_headerSize),
@@ -101,37 +103,24 @@ Header::Header(Header const& other) :
     m_isCompressed(other.m_isCompressed),
     m_headerPadding(other.m_headerPadding)
 {
-    void* p = 0;
-
-    p = std::memcpy(m_signature, other.m_signature, eFileSignatureSize);
-    assert(p == m_signature);
-    p = std::memcpy(m_systemId, other.m_systemId, eSystemIdSize);
-    assert(p == m_systemId);
-    p = std::memcpy(m_softwareId, other.m_softwareId, eSoftwareIdSize);
-    assert(p == m_softwareId);
     std::vector<uint32_t>(other.m_pointRecordsByReturn).swap(m_pointRecordsByReturn);
     assert(ePointsByReturnSize >= m_pointRecordsByReturn.size());
 
     std::vector<VariableRecord>(other.m_vlrs).swap(m_vlrs);
-
 }
 
 Header& Header::operator=(Header const& rhs)
 {
     if (&rhs != this)
     {
-        void* p = 0;
-        p = std::memcpy(m_signature, rhs.m_signature, eFileSignatureSize);
-        assert(p == m_signature);
+        m_signature = rhs.m_signature;
         m_sourceId = rhs.m_sourceId;
         m_reserved = rhs.m_reserved;
         m_projectGuid = rhs.m_projectGuid;
         m_versionMajor = rhs.m_versionMajor;
         m_versionMinor = rhs.m_versionMinor;
-        p = std::memcpy(m_systemId, rhs.m_systemId, eSystemIdSize);
-        assert(p == m_systemId);
-        p = std::memcpy(m_softwareId, rhs.m_softwareId, eSoftwareIdSize);
-        assert(p == m_softwareId);
+        m_systemId = rhs.m_systemId;
+        m_softwareId = rhs.m_softwareId;
         m_createDOY = rhs.m_createDOY;
         m_createYear = rhs.m_createYear;
         m_headerSize = rhs.m_headerSize;
@@ -187,7 +176,7 @@ bool Header::operator==(Header const& other) const
 
 std::string Header::GetFileSignature() const
 {
-    return std::string(m_signature, eFileSignatureSize);
+    return std::string(m_signature.begin(), m_signature.end());
 }
 
 void Header::SetFileSignature(std::string const& v)
@@ -195,7 +184,7 @@ void Header::SetFileSignature(std::string const& v)
     if (0 != v.compare(0, eFileSignatureSize, FileSignature))
         throw std::invalid_argument("invalid file signature");
 
-    std::strncpy(m_signature, v.c_str(), eFileSignatureSize);
+    std::copy_n(v.begin(), static_cast<int>(eFileSignatureSize), m_signature.begin());
 }
 
 uint16_t Header::GetFileSourceId() const
@@ -263,7 +252,7 @@ void Header::SetVersionMinor(uint8_t v)
 std::string Header::GetSystemId(bool pad /*= false*/) const
 {
     // copy array of chars and trim zeros if smaller than 32 bytes
-    std::string tmp(std::string(m_systemId, eSystemIdSize).c_str());
+    std::string tmp(m_systemId.begin(), m_systemId.end());
 
     // pad right side with spaces
     if (pad && tmp.size() < eSystemIdSize)
@@ -281,13 +270,13 @@ void Header::SetSystemId(std::string const& v)
     if (v.size() > eSystemIdSize)
         throw std::invalid_argument("system id too long");
 
-    std::fill(m_systemId, m_systemId + eSystemIdSize, 0);
-    std::strncpy(m_systemId, v.c_str(), eSystemIdSize);
+    std::fill(m_systemId.begin(), m_systemId.end(), 0);
+    std::copy(v.begin(), v.end(), m_systemId.begin());
 }
 
 std::string Header::GetSoftwareId(bool pad /*= false*/) const
 {
-    std::string tmp(std::string(m_softwareId, eSoftwareIdSize).c_str());
+    std::string tmp(m_softwareId.begin(), m_softwareId.end());
 
     // pad right side with spaces
     if (pad && tmp.size() < eSoftwareIdSize)
@@ -305,9 +294,8 @@ void Header::SetSoftwareId(std::string const& v)
     if (v.size() > eSoftwareIdSize)
         throw std::invalid_argument("generating software id too long");
 
-//    m_softwareId = v;
-    std::fill(m_softwareId, m_softwareId + eSoftwareIdSize, 0);
-    std::strncpy(m_softwareId, v.c_str(), eSoftwareIdSize);
+    std::fill(m_softwareId.begin(), m_softwareId.end(), 0);
+    std::copy(v.begin(), v.end(), m_softwareId.begin());
 }
 
 uint16_t Header::GetCreationDOY() const
@@ -578,14 +566,17 @@ void Header::Init()
     m_recordsCount = 0;
     m_pointRecordsCount = 0;
 
-    std::memset(m_signature, 0, eFileSignatureSize);
-    std::strncpy(m_signature, FileSignature, eFileSignatureSize);
+    std::fill(m_signature.begin(), m_signature.end(), 0);
+    std::string sFileSignature = std::string(FileSignature);
+    std::copy_n(m_signature.begin(), sFileSignature.size(), sFileSignature.begin());
 
-    std::memset(m_systemId, 0, eSystemIdSize);
-    std::strncpy(m_systemId, SystemIdentifier, eSystemIdSize);
+    std::fill(m_systemId.begin(), m_systemId.end(), 0);
+    std::string sSystemIdentifier = std::string(SystemIdentifier);
+    std::copy_n(m_systemId.begin(), sSystemIdentifier.size(), sSystemIdentifier.begin());
 
-    std::memset(m_softwareId, 0, eSoftwareIdSize);
-    std::strncpy(m_softwareId, SoftwareIdentifier, eSoftwareIdSize);
+    std::fill(m_softwareId.begin(), m_softwareId.end(), 0);
+    std::string sSoftwareIdentifier = std::string(SoftwareIdentifier);
+    std::copy_n(m_softwareId.begin(), sSoftwareIdentifier.size(), sSoftwareIdentifier.begin());
 
     m_pointRecordsByReturn.resize(ePointsByReturnSize);
 
