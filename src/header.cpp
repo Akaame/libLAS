@@ -184,7 +184,7 @@ void Header::SetFileSignature(std::string const& v)
     if (0 != v.compare(0, eFileSignatureSize, FileSignature))
         throw std::invalid_argument("invalid file signature");
 
-    std::copy_n(v.begin(), static_cast<int>(eFileSignatureSize), m_signature.begin());
+    std::copy_n(v.begin(), static_cast<std::size_T>(eFileSignatureSize), m_signature.begin());
 }
 
 uint16_t Header::GetFileSourceId() const
