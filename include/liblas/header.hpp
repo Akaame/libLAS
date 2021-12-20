@@ -109,7 +109,7 @@ public:
 
     /// Get ASPRS LAS file signature.
     /// \return 4-characters long string - \b "LASF".
-    std::string GetFileSignature() const;
+    std::string const GetFileSignature() const;
 
     /// Set ASPRS LAS file signature.
     /// The only value allowed as file signature is \b "LASF",
@@ -172,7 +172,7 @@ public:
     /// its length is 32 bytes, if false (default) no padding occurs and
     /// length of the returned string is <= 32 bytes.
     /// \return value of system identifier field.
-    std::string GetSystemId(bool pad = false) const;
+    std::string const GetSystemId(bool pad = false) const;
 
     /// Set system identifier.
     /// \exception std::invalid_argument - if identifier longer than 32 bytes.
@@ -184,7 +184,7 @@ public:
     /// \param pad - if true the returned string is padded right with spaces and its length is 32 bytes,
     /// if false (default) no padding occurs and length of the returned string is <= 32 bytes.
     /// \return value of generating software identifier field.
-    std::string GetSoftwareId(bool pad = false) const;
+    std::string const GetSoftwareId(bool pad = false) const;
 
     /// Set software identifier.
     /// \exception std::invalid_argument - if identifier is longer than 32 bytes.
@@ -391,9 +391,6 @@ private:
         eFileSourceIdMax = 65535
     };
 
-    // TODO (low-priority): replace static-size char arrays
-    // with std::string and return const-reference to string object.
-    
     //
     // Private function members
     //
@@ -402,7 +399,7 @@ private:
     //
     // Private data members
     //
-    char m_signature[eFileSignatureSize]; // TODO: replace with boost::array --mloskot
+    std::string m_signature;
     boost::uint16_t m_sourceId;
     boost::uint16_t m_reserved;
     boost::uuids::uuid m_projectGuid;
@@ -413,8 +410,8 @@ private:
     boost::uint8_t m_versionMajor;
     boost::uint8_t m_versionMinor;
 
-    char m_systemId[eSystemIdSize]; // TODO: replace with boost::array --mloskot
-    char m_softwareId[eSoftwareIdSize];
+    std::string m_systemId;
+    std::string m_softwareId;
     uint16_t m_createDOY;
     uint16_t m_createYear;
     uint16_t m_headerSize;
